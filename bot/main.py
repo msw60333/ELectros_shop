@@ -6,10 +6,12 @@ from aiogram.types import Message , ReplyKeyboardMarkup, KeyboardButton
 from aiogram import F
 from aiogram.fsm.context import FSMContext
 
-
+from bot.keyboards import categories_keyboard
 from config import BOT_TOKEN
 from database.db import init_db
+from database.db import get_db_connection
 from bot.registration import Registration, router as registration_router
+from bot.keyboards import main_menu_keyboard
 from aiogram.fsm.storage.memory import MemoryStorage
 
 bot = Bot(token=BOT_TOKEN)  
@@ -27,15 +29,30 @@ def start_keyboard():
 
 
 
+
 @db.message(CommandStart())
-async def start_command(message: Message):
-    await message.answer(f"Привет, {message.from_user.first_name}! 👋\n\n"
-        "Добро пожаловать в наш интернет-магазин!\n"
-        "Здесь ты сможешь выбирать товары, "
-        "добавлять их в корзину и оформлять заказы.\n\n"
-        "Нажми кнопку ниже, чтобы начать регистрацию.", reply_markup=start_keyboard()
+async def start_handler(message: Message):
+
+    with get_db_connection() as connection:
+        user = connection.execute(
+            "SELECT name FROM users WHERE telegram_id = ?",
+            (message.from_user.id,)
+        ).fetchone()
+
+    if user:
+        await message.answer(
+            f"С возвращением, {user['name']}! 👋\n\n"
+            "Рады снова видеть тебя в нашем магазине!",
+            reply_markup=main_menu_keyboard()
         )
-    
+    else:
+        await message.answer(
+            f"Привет, {message.from_user.first_name}! 👋\n\n"
+            "Добро пожаловать в наш интернет-магазин!\n\n"
+            "Чтобы продолжить, нажми кнопку «Начать».",
+            reply_markup=start_keyboard()
+        )
+
 
 
 @db.message(F.text == "🚀 Начать")
@@ -45,7 +62,19 @@ async def menu_handler(message: Message, state: FSMContext):
     await message.answer(
         "Давай зарегистрируемся!\n\n"
         "Напиши своё имя и фамилию."
-    )
+    )  
+    
+
+
+@db.message(F.text == "🛍 Категории")
+async def categories_handler(message: Message):
+
+    await message.answer(
+        "🛍 Добро пожаловать в наши интернет-магазины!\n\n"
+        "Выберите интересующую вас категорию товаров.\n",
+        reply_markup=categories_keyboard()
+    )    
+
 
 
 async def main():

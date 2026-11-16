@@ -7,7 +7,7 @@ from aiogram.types import (
     KeyboardButton,
     ReplyKeyboardRemove
 )
-
+from bot.keyboards import main_menu_keyboard
 from database.db import get_db_connection 
 
 router = Router()
@@ -145,6 +145,8 @@ async def get_address(message: Message, state: FSMContext):
             f"Телефон: {data['phone']}\n"
             f"Адрес: {address}\n\n"
             "Добро пожаловать в наш магазин!"
+            "Выбери нужный раздел в меню ниже.",
+            reply_markup=main_menu_keyboard()
         )
 
         print("Пользователь успешно зарегистрирован!")
